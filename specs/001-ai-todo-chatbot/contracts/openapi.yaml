@@ -1,0 +1,234 @@
+openapi: 3.1.0
+info:
+  title: AI Todo Chatbot API
+  description: |
+    Single-endpoint API for AI-powered todo management via natural language chat.
+    All task operations are handled by the AI agent through MCP tools.
+  version: 1.0.0
+  contact:
+    name: AI Todo Chatbot
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.example.com
+    description: Production server
+
+paths:
+  /api/{user_id}/chat:
+    post:
+      operationId: chat
+      summary: Send a chat message
+      description: |
+        Send a natural language message to the AI assistant.
+        The agent interprets user intent and executes appropriate MCP tools
+        for task management (add, list, update, complete, delete).
+      tags:
+        - Chat
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: External user identifier
+          schema:
+            type: string
+            maxLength: 100
+            example: "user_123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              addTask:
+                summary: Add a new task
+                value:
+                  message: "Add a task to buy groceries"
+              listTasks:
+                summary: List all tasks
+                value:
+                  message: "Show me my tasks"
+              completeTask:
+                summary: Complete a task
+                value:
+                  message: "Complete task 5"
+              updateTask:
+                summary: Update a task
+                value:
+                  message: "Update task 3 to Review Q1 report"
+              deleteTask:
+                summary: Delete a task
+                value:
+                  message: "Delete task 7"
+      responses:
+        '200':
+          description: Successful response from AI assistant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                taskAdded:
+                  summary: Task added successfully
+                  value:
+                    conversation_id: "conv_abc123"
+                    response: "I've added 'buy groceries' to your tasks. Task ID: 42"
+                    tool_calls:
+                      - tool: "add_task"
+                        input:
+                          user_id: "user_123"
+                          title: "buy groceries"
+                        output:
+                          task_id: 42
+                          status: "pending"
+                          title: "buy groceries"
+                taskListed:
+                  summary: Tasks listed
+                  value:
+                    conversation_id: "conv_abc123"
+                    response: "Here are your tasks:\n1. [42] buy groceries - pending\n2. [41] call mom - completed"
+                    tool_calls:
+                      - tool: "list_tasks"
+                        input:
+                          user_id: "user_123"
+                        output:
+                          - task_id: 42
+                            title: "buy groceries"
+                            status: "pending"
+                          - task_id: 41
+                            title: "call mom"
+                            status: "completed"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "validation_error"
+                message: "Message cannot be empty"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "internal_error"
+                message: "An unexpected error occurred. Please try again."
+
+components:
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Natural language message from the user
+          minLength: 1
+          maxLength: 10000
+          example: "Add a task to buy groceries"
+        conversation_id:
+          type: string
+          description: Optional conversation ID to continue existing conversation
+          example: "conv_abc123"
+
+    ChatResponse:
+      type: object
+      required:
+        - conversation_id
+        - response
+        - tool_calls
+      properties:
+        conversation_id:
+          type: string
+          description: Conversation identifier for context continuity
+          example: "conv_abc123"
+        response:
+          type: string
+          description: AI assistant's response message
+          example: "I've added 'buy groceries' to your tasks. Task ID: 42"
+        tool_calls:
+          type: array
+          description: List of MCP tools executed during this request
+          items:
+            $ref: '#/components/schemas/ToolCall'
+
+    ToolCall:
+      type: object
+      required:
+        - tool
+        - input
+        - output
+      properties:
+        tool:
+          type: string
+          description: Name of the MCP tool executed
+          enum:
+            - add_task
+            - list_tasks
+            - update_task
+            - complete_task
+            - delete_task
+          example: "add_task"
+        input:
+          type: object
+          description: Input parameters passed to the tool
+          additionalProperties: true
+        output:
+          oneOf:
+            - $ref: '#/components/schemas/TaskOutput'
+            - type: array
+              items:
+                $ref: '#/components/schemas/TaskOutput'
+          description: Output from the tool execution
+
+    TaskOutput:
+      type: object
+      properties:
+        task_id:
+          type: integer
+          description: Unique task identifier
+          example: 42
+        status:
+          type: string
+          enum:
+            - pending
+            - completed
+          description: Task completion status
+          example: "pending"
+        title:
+          type: string
+          description: Task title
+          example: "buy groceries"
+        description:
+          type: string
+          nullable: true
+          description: Optional task description
+          example: "Get milk, bread, and eggs"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+          enum:
+            - validation_error
+            - not_found
+            - internal_error
+          example: "validation_error"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Message cannot be empty"
+
+tags:
+  - name: Chat
+    description: Chat endpoint for AI-powered task management
