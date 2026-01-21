@@ -4,7 +4,7 @@
  * Handles task operations with the backend API.
  */
 
-import { getAuthHeaders, getToken, getUser } from './auth';
+import { getAuthHeaders, getUser } from './auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -27,7 +27,6 @@ export function getTaskStatus(task: Task): 'pending' | 'completed' {
  * Fetch all tasks for the current user.
  */
 export async function fetchTasks(): Promise<Task[]> {
-  const token = getToken();
   const user = getUser();
 
   // For guests, use a generated user ID

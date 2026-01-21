@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Bot, LogOut, Plus, CheckSquare, Square, Trash2,
-  MessageCircle, AlertCircle, User
+  MessageCircle, AlertCircle
 } from 'lucide-react';
 import { getUser, isAuthenticated, logout } from '../services/auth';
 import { fetchTasks, Task } from '../services/tasks';
